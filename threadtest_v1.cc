@@ -21,12 +21,7 @@
 //	purposes.
 //----------------------------------------------------------------------
 int NOPhilo;
-int NOMeal;
-bool * chopstick;
-bool allEntered;
-bool allEated;
-int doneDining;
-
+int NOChop;
 void
 SimpleThread(int which)
 {
@@ -124,79 +119,12 @@ ShoutOutLoud(int which)
 		i++;
 	}
 }	
-void 
-pickleft(int id){
-	while(chopstick[id]){
-		if(!chopstick[id])
-			break;
-	}
-	if(!chopstick[id]){
-		printf("\nPhilosopher %d picks up left chopstick", id);
-		chopstick[id] = true;	
-	}
-}
 
 void 
-pickright(int id){
-	int idc = (id + 1)%NOPhilo;
-	while(chopstick[idc]){
-		if(!chopstick[idc])
-			break;
-	}
-	if(!chopstick[idc]){
-		printf("\nPhilosopher %d picks up right chopstick", id);
-		chopstick[idc] = true;	
-	}
-}
-
-void 
-eat(int id, int meal){
-	printf("\nPhilosopher %d is eating meal#%d",id, meal);
-	for(int i = 0; i < Random()%5+2; i ++){
-		// currentThread->Yield();
-	}
-}
-
-void
-putleft(int id){
-	printf("\nPhilosopher %d puts down left chopstick", id);
-	chopstick[id] = false;
-}
-
-void
-putright(int id){
-	int idc = (id + 1)%NOPhilo;
-	printf("\nPhilosopher %d puts down right chopstick", id);
-	chopstick[idc] = false;
-}
-
-void 
-think(int id){
-	printf("\nPhilosopher %d begin thinking",id);
-	for(int i = 0; i < Random()%5+2; i ++){
-		currentThread->Yield();
-	}	
-}
-
-void 
-Dining(int id)
+Dining(int nom)
 {
-	int currentMeal = 0;
-	printf("\n%s said: Sitting down.",
-		currentThread->getName());
-	currentThread->Yield();
-	while(currentMeal < NOMeal){
-		pickleft(id);
-		pickright(id);
-		eat(id, currentMeal);
-		putleft(id);
-		putright(id);
-		think(id);
-		currentMeal++;
-	}
-	doneDining++;
-	if(doneDining == NOPhilo)
-		printf("\nPhilosopher %d is leaving the table\n",id);
+	printf("\nThis is %s and we have %d chopsticks",
+		currentThread->getName(),NOChop);
 }
 //----------------------------------------------------------------------
 // ThreadTest
@@ -206,8 +134,7 @@ Dining(int id)
 void
 ThreadTest()
 {
-	doneDining = 0;
-	allEntered = false;
+	
     DEBUG('t', "Entering ThreadTest");
 	if(CMD == 1){ 
 		//printf("hola and CMD = %d", CMD);
@@ -234,24 +161,20 @@ ThreadTest()
 	
 		int nop = atoi(num); //nop: number of philosophers
 		NOPhilo = nop;
-		chopstick = new bool[nop];
-
-		//Populate chopstick slot: all false - chopstick is not in use
-		for(int i=0; i < nop ;i++){
-			chopstick[i] = false;
-		}
-
+		NOChop = nop;
 		int nom = atoi(shout); //nom: number of meals
-		NOMeal = nom;
 		int ii = 1;
 		char * which;
 		if(nop && nom){
-			for(int i = 0; i < nop; i++){
-				// printf("Philosopher %d sits down\n",);
+		//printf("%d %d",num1,shout1);
+			for(int i = 1; i <= nop; i++){
+				//printf("%s\n",a[i]);
 				which = new char[100];
-				sprintf(which, "Philosophers %d",i);
+				sprintf(which, "Philosophers %d",ii);
+				ii++;
+		//		printf("%s\n",which);
 				thread = new Thread(which);	
-				thread->Fork(Dining,i);
+				thread->Fork(Dining,nom);
 			}
 		}
 		else{
