@@ -162,7 +162,7 @@ pickright(int id){
 void
 pickrightS(int id){
 	printf("\nPhilosopher %d picks up right chopstick", id);
-	int idc = (id+1)&NOPhilo;
+	int idc = (id+1)%NOPhilo;
 	chopstickS[idc]->P(); 
 }
 
@@ -349,9 +349,9 @@ ThreadTest()
 				which = new char[100];
 				sprintf(which, "Philosophers %d",i);
 				thread = new Thread(which);	
-				if(CMD == 2)
+				if(CMD == 3)
 					thread->Fork(Dining,i);
-				else if(CMD == 3)
+				else if(CMD == 4)
 					thread->Fork(DiningS,i);
 			}
 		}
