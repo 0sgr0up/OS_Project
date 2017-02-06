@@ -120,6 +120,15 @@ Initialize(int argc, char **argv)
 			printf("Initializing task 2!");
 			CMD = 2;
 		}
+		else if(!strcmp(*(argv+1), "3")){
+			printf("Initializing Dining Philosophers (Busy Waiting) !");
+			CMD = 3;
+		}
+		else if(!strcmp(*(argv+1), "4")){
+			printf("Initializing Dining Philosophers (Semaphore) !");
+			CMD = 4;
+		}
+			
 	}
 	//End code changes by Hoang Pham
 #ifdef USER_PROGRAM

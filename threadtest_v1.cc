@@ -20,8 +20,7 @@
 //	"which" is simply a number identifying the thread, for debugging
 //	purposes.
 //----------------------------------------------------------------------
-int NOPhilo;
-int NOChop;
+
 void
 SimpleThread(int which)
 {
@@ -121,11 +120,82 @@ ShoutOutLoud(int which)
 }	
 
 void 
-Dining(int nom)
-{
-	printf("\nThis is %s and we have %d chopsticks",
-		currentThread->getName(),NOChop);
+pickleft(int id){
+	while(chopstick[id]){
+		//waiting
+		currentThread->Yield();
+	}
+	if(!chopstick[id]){
+		printf("\nPhilosopher %d picks up left chopstick", id);
+		chopstick[id] = true;	
+	}
 }
+
+void 
+pickright(int id){
+	int idc = (id + 1)%NOPhilo;
+	while(chopstick[idc]){
+		//waiting
+		currentThread->Yield();
+	}
+	if(!chopstick[idc]){
+		printf("\nPhilosopher %d picks up right chopstick", id);
+		chopstick[idc] = true;	
+	}
+}
+
+void 
+eat(int id, int meal){
+	printf("\nPhilosopher %d is eating meal#%d",id, meal);
+	for(int i = 0; i < Random()%5+2; i ++){
+		currentThread->Yield();
+	}
+}
+
+void
+putleft(int id){
+	printf("\nPhilosopher %d puts down left chopstick", id);
+	chopstick[id] = false;
+}
+
+void
+putright(int id){
+	int idc = (id + 1)%NOPhilo;
+	printf("\nPhilosopher %d puts down right chopstick", id);
+	chopstick[idc] = false;
+}
+
+void 
+think(int id){
+	printf("\nPhilosopher %d begin thinking",id);
+	for(int i = 0; i < Random()%5+2; i ++){
+		currentThread->Yield();
+	}	
+}
+
+void 
+Dining(int id)
+{
+	int currentMeal = 0;
+	printf("\n%s said: Sitting down.",
+		currentThread->getName());
+	currentThread->Yield();
+	while(currentMeal < NOMeal){
+		pickleft(id);
+		pickright(id);
+		eat(id, currentMeal);
+		putleft(id);
+		putright(id);
+		think(id);
+		currentMeal++;
+	}
+	doneDining++;
+	// printf("\nThis is doneDining number: %d",doneDining);
+	if(doneDining == NOPhilo)
+		for(int i =0 ;i <NOPhilo; i++)
+			printf("\nPhilosopher %d is leaving the table",i);
+}
+
 //----------------------------------------------------------------------
 // ThreadTest
 // 	Invoke a test routine.
@@ -143,6 +213,43 @@ ThreadTest()
 	}
 	else if(CMD ==2){
 		//printf("Bonjour and CMD = %d",CMD);
+		printf("\nPlease enter number of threads: ");
+		char num[10];
+		gets(num);
+		while(atoi(num)==0){
+			printf("\nIncorrect Input\nPlease enter number of threads: ");
+			gets(num);
+		}
+		printf("\nPlease enter number of shout for each thread: ");
+		char shout[10];
+		gets(shout);
+		while(atoi(shout)==0){
+			printf("\nIncorrect Input\nPlease enter number of shout for each thread: ");
+			gets(shout);
+		}
+		Thread *thread;// = new Thread("shouted thread");
+	
+		int num1 = atoi(num);
+		int shout1 = atoi(shout);
+		int ii = 1;
+		char * which;
+		if(num1 && shout1){
+		//printf("%d %d",num1,shout1);
+			for(int i = 1; i <= num1; i++){
+				//printf("%s\n",a[i]);
+				which = new char[10];
+				sprintf(which, "Thread %d",ii);
+				ii++;
+		//		printf("%s\n",which);
+				thread = new Thread(which);	
+				thread->Fork(ShoutOutLoud,shout1);
+			}
+		}
+		else{
+			printf("\nYou have entered invalid value for number of thread or/and number of shouting each thread");
+		}	
+	}
+	else if(CMD == 3){
 		printf("\nPlease enter number of philosophers: ");
 		char num[10];
 		gets(num);
@@ -161,25 +268,34 @@ ThreadTest()
 	
 		int nop = atoi(num); //nop: number of philosophers
 		NOPhilo = nop;
-		NOChop = nop;
+		chopstick = new bool[nop];
+
+		//Populate chopstick slot: all false - chopstick is not in use
+		for(int i=0; i < nop ;i++){
+			chopstick[i] = false;
+		}
+
 		int nom = atoi(shout); //nom: number of meals
+		NOMeal = nom;
 		int ii = 1;
 		char * which;
 		if(nop && nom){
-		//printf("%d %d",num1,shout1);
-			for(int i = 1; i <= nop; i++){
-				//printf("%s\n",a[i]);
+			for(int i = 0; i < nop; i++){
+				// printf("Philosopher %d sits down\n",);
 				which = new char[100];
-				sprintf(which, "Philosophers %d",ii);
-				ii++;
-		//		printf("%s\n",which);
+				sprintf(which, "Philosophers %d",i);
 				thread = new Thread(which);	
-				thread->Fork(Dining,nom);
+				if(CMD == 2)
+					thread->Fork(Dining,i);
+				else if(CMD == 3)
+					thread->Fork(DiningS,i);
 			}
 		}
 		else{
 			printf("\nYou have entered invalid value for number of philosophers or/and number of meals for each philosophers");
-		}	
+		}
+
+		printf("\n");
 	}
 }
 //End code changes by Hoang Pham

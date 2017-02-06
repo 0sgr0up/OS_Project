@@ -11,6 +11,7 @@
 
 #include "copyright.h"
 #include "system.h"
+#include "synch.h"
 #include <string.h>
 //----------------------------------------------------------------------
 // SimpleThread
@@ -26,6 +27,8 @@ bool * chopstick;
 bool allEntered;
 bool allEated;
 int doneDining;
+
+Semaphore ** chopstickS;
 
 void
 SimpleThread(int which)
@@ -124,11 +127,12 @@ ShoutOutLoud(int which)
 		i++;
 	}
 }	
+
 void 
 pickleft(int id){
 	while(chopstick[id]){
-		if(!chopstick[id])
-			break;
+		//waiting
+		currentThread->Yield();
 	}
 	if(!chopstick[id]){
 		printf("\nPhilosopher %d picks up left chopstick", id);
@@ -136,12 +140,18 @@ pickleft(int id){
 	}
 }
 
+void
+pickleftS(int id){
+	printf("\nPhilosopher %d picks up left chopstick", id);
+	chopstickS[id]->P(); 
+}
+
 void 
 pickright(int id){
 	int idc = (id + 1)%NOPhilo;
 	while(chopstick[idc]){
-		if(!chopstick[idc])
-			break;
+		//waiting
+		currentThread->Yield();
 	}
 	if(!chopstick[idc]){
 		printf("\nPhilosopher %d picks up right chopstick", id);
@@ -149,11 +159,18 @@ pickright(int id){
 	}
 }
 
+void
+pickrightS(int id){
+	printf("\nPhilosopher %d picks up right chopstick", id);
+	int idc = (id+1)&NOPhilo;
+	chopstickS[idc]->P(); 
+}
+
 void 
 eat(int id, int meal){
 	printf("\nPhilosopher %d is eating meal#%d",id, meal);
 	for(int i = 0; i < Random()%5+2; i ++){
-		// currentThread->Yield();
+		currentThread->Yield();
 	}
 }
 
@@ -163,11 +180,24 @@ putleft(int id){
 	chopstick[id] = false;
 }
 
+void 
+putleftS(int id){
+	printf("\nPhilosopher %d puts down left chopstick", id);
+	chopstickS[id]->V();
+}
+
 void
 putright(int id){
 	int idc = (id + 1)%NOPhilo;
 	printf("\nPhilosopher %d puts down right chopstick", id);
 	chopstick[idc] = false;
+}
+
+void 
+putrightS(int id){
+	printf("\nPhilosopher %d puts down right chopstick", id);
+	int idc = (id + 1)%NOPhilo;
+	chopstickS[idc]->V();
 }
 
 void 
@@ -195,8 +225,33 @@ Dining(int id)
 		currentMeal++;
 	}
 	doneDining++;
+	// printf("\nThis is doneDining number: %d",doneDining);
 	if(doneDining == NOPhilo)
-		printf("\nPhilosopher %d is leaving the table\n",id);
+		for(int i =0 ;i <NOPhilo; i++)
+			printf("\nPhilosopher %d is leaving the table",i);
+}
+
+void 
+DiningS(int id){
+	int currentMeal = 0;
+	printf("\n%s said: Sitting down.",
+		 currentThread->getName());
+	currentThread->Yield();
+	while(currentMeal < NOMeal){
+		pickleftS(id);
+		pickrightS(id);
+		eat(id, currentMeal);
+		putleftS(id);
+		putrightS(id);
+		think(id);
+		currentMeal++;
+	}
+	doneDining++;
+	if(doneDining == NOPhilo)
+		for (int i = 0; i < NOPhilo; ++i)
+		{
+			printf("\nPhilosopher %d is leaving the table",i);			
+		}
 }
 //----------------------------------------------------------------------
 // ThreadTest
@@ -206,8 +261,7 @@ Dining(int id)
 void
 ThreadTest()
 {
-	doneDining = 0;
-	allEntered = false;
+	
     DEBUG('t', "Entering ThreadTest");
 	if(CMD == 1){ 
 		//printf("hola and CMD = %d", CMD);
@@ -216,6 +270,43 @@ ThreadTest()
 	}
 	else if(CMD ==2){
 		//printf("Bonjour and CMD = %d",CMD);
+		printf("\nPlease enter number of threads: ");
+		char num[10];
+		gets(num);
+		while(atoi(num)==0){
+			printf("\nIncorrect Input\nPlease enter number of threads: ");
+			gets(num);
+		}
+		printf("\nPlease enter number of shout for each thread: ");
+		char shout[10];
+		gets(shout);
+		while(atoi(shout)==0){
+			printf("\nIncorrect Input\nPlease enter number of shout for each thread: ");
+			gets(shout);
+		}
+		Thread *thread;// = new Thread("shouted thread");
+	
+		int num1 = atoi(num);
+		int shout1 = atoi(shout);
+		int ii = 1;
+		char * which;
+		if(num1 && shout1){
+		//printf("%d %d",num1,shout1);
+			for(int i = 1; i <= num1; i++){
+				//printf("%s\n",a[i]);
+				which = new char[10];
+				sprintf(which, "Thread %d",ii);
+				ii++;
+		//		printf("%s\n",which);
+				thread = new Thread(which);	
+				thread->Fork(ShoutOutLoud,shout1);
+			}
+		}
+		else{
+			printf("\nYou have entered invalid value for number of thread or/and number of shouting each thread");
+		}	
+	}
+	else if(CMD == 3 | CMD == 4){
 		printf("\nPlease enter number of philosophers: ");
 		char num[10];
 		gets(num);
@@ -235,12 +326,19 @@ ThreadTest()
 		int nop = atoi(num); //nop: number of philosophers
 		NOPhilo = nop;
 		chopstick = new bool[nop];
-
+		chopstickS = new Semaphore * [nop];
 		//Populate chopstick slot: all false - chopstick is not in use
 		for(int i=0; i < nop ;i++){
 			chopstick[i] = false;
 		}
 
+		char * nameS;
+		//Populate value for chopstick semaphore
+		for(int i=0; i < nop ;i++){
+			nameS = new char[100];
+			sprintf(nameS, "Chopstick %d",i);
+			chopstickS[i] = new Semaphore(nameS,1);
+		}
 		int nom = atoi(shout); //nom: number of meals
 		NOMeal = nom;
 		int ii = 1;
@@ -251,12 +349,17 @@ ThreadTest()
 				which = new char[100];
 				sprintf(which, "Philosophers %d",i);
 				thread = new Thread(which);	
-				thread->Fork(Dining,i);
+				if(CMD == 2)
+					thread->Fork(Dining,i);
+				else if(CMD == 3)
+					thread->Fork(DiningS,i);
 			}
 		}
 		else{
 			printf("\nYou have entered invalid value for number of philosophers or/and number of meals for each philosophers");
-		}	
+		}
+
+		printf("\n");
 	}
 }
 //End code changes by Hoang Pham
