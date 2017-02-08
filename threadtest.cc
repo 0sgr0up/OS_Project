@@ -326,10 +326,10 @@ ThreadTest()
 			gets(num);
 		}
 		printf("\nPlease enter number of meals for each philosophers: ");
-		char shout[100];
+		char * shout = new char[100];
 		gets(shout);
 		// char * shout1 = shout;
-		while(atoi(shout)==0){
+		while(atoi(shout)==0 || checkInt(shout)){
 			printf("\nIncorrect Input\nPlease enter number of meals for each philosophers: ");
 			gets(shout);
 		}
