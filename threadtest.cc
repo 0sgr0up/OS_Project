@@ -253,6 +253,16 @@ DiningS(int id){
 			printf("\nPhilosopher %d is leaving the table",i);			
 		}
 }
+
+bool 
+checkInt(char * var){
+	for(int i = 0; var[i] != '\0'; i++){
+		if(var[i] < '0' || var[i] > '9')
+			return true;
+	}
+	return false;
+}
+
 //----------------------------------------------------------------------
 // ThreadTest
 // 	Invoke a test routine.
@@ -308,15 +318,17 @@ ThreadTest()
 	}
 	else if(CMD == 3 | CMD == 4){
 		printf("\nPlease enter number of philosophers: ");
-		char num[10];
+		char * num = new char[100];
 		gets(num);
-		while(atoi(num)==0){
+		//char * num1 = num;
+		while(atoi(num)==0  || checkInt(num)){
 			printf("\nIncorrect Input\nPlease enter number of philosophers: ");
 			gets(num);
 		}
 		printf("\nPlease enter number of meals for each philosophers: ");
-		char shout[10];
+		char shout[100];
 		gets(shout);
+		// char * shout1 = shout;
 		while(atoi(shout)==0){
 			printf("\nIncorrect Input\nPlease enter number of meals for each philosophers: ");
 			gets(shout);
