@@ -128,6 +128,14 @@ Initialize(int argc, char **argv)
 			printf("Initializing Dining Philosophers (Semaphore) !");
 			CMD = 4;
 		}
+		else if(!strcmp(*(argv+1), "5")){
+			printf("Initializing Post Office (Busy Waiting) !");
+			CMD = 5;
+		}
+		else if(!strcmp(*(argv+1), "6")){
+			printf("Initializing Post Office (Semaphore) !");
+			CMD = 6;
+		}
 			
 	}
 	//End code changes by Hoang Pham

@@ -27,11 +27,19 @@ bool * chopstick;
 bool allEntered;
 bool allEated;
 int doneDining;
+int currentMeal;
+
+int NOPeople;
+int MSize;
+int NOMail;
+int totalSent;
+
+int ** mailbox;
+const char * mailContent[10];
 
 Semaphore ** chopstickS;
 
-void
-SimpleThread(int which)
+void SimpleThread(int which)
 {
     int num;
     
@@ -42,8 +50,7 @@ SimpleThread(int which)
 }
 
 //Begin code changes by Hoang Pham
-void
-CheckInput(int which)
+void CheckInput(int which)
 {
 	char input[100];
 	printf("\nPlease enter your input: ");
@@ -102,8 +109,7 @@ CheckInput(int which)
 	printf("\n");
 }
 
-void 
-ShoutOutLoud(int which)
+void ShoutOutLoud(int which)
 {
 	const char *a[8];
 	a[0] = "We are watching the Packers and Falcons game";
@@ -121,34 +127,33 @@ ShoutOutLoud(int which)
 	while(i < which){
 		int index = Random()%8;
 		printf("%s said %s, and has shouted %d time(s)\n",currentThread->getName(),a[index],time);
-		for(int j = 0; j < (Random()%5+2); j++)
+		for(int j = 0; j < (Random()%4+2); j++)
 			currentThread->Yield();	
 		time++;
 		i++;
 	}
 }	
 
-void 
-pickleft(int id){
+void pickleft(int id){
 	while(chopstick[id]){
 		//waiting
 		currentThread->Yield();
 	}
 	if(!chopstick[id]){
 		printf("\nPhilosopher %d picks up left chopstick", id);
-		chopstick[id] = true;	
+		chopstick[id] = true;
 	}
 }
 
-void
-pickleftS(int id){
+void pickleftS(int id){
 	printf("\nPhilosopher %d picks up left chopstick", id);
 	chopstickS[id]->P(); 
 }
 
-void 
-pickright(int id){
+void pickright(int id){
 	int idc = (id + 1)%NOPhilo;
+	if(NOPhilo == 1)
+		idc = 1;
 	while(chopstick[idc]){
 		//waiting
 		currentThread->Yield();
@@ -159,23 +164,21 @@ pickright(int id){
 	}
 }
 
-void
-pickrightS(int id){
+void pickrightS(int id){
 	printf("\nPhilosopher %d picks up right chopstick", id);
 	int idc = (id+1)%NOPhilo;
 	chopstickS[idc]->P(); 
 }
 
-void 
-eat(int id, int meal){
+void eat(int id, int meal){
 	printf("\nPhilosopher %d is eating meal#%d",id, meal);
-	for(int i = 0; i < Random()%5+2; i ++){
+	currentMeal++;
+	for(int i = 0; i < Random()%4+2; i ++){
 		currentThread->Yield();
-	}
+	}	
 }
 
-void
-putleft(int id){
+void putleft(int id){
 	printf("\nPhilosopher %d puts down left chopstick", id);
 	chopstick[id] = false;
 }
@@ -186,72 +189,80 @@ putleftS(int id){
 	chopstickS[id]->V();
 }
 
-void
-putright(int id){
+void putright(int id){
 	int idc = (id + 1)%NOPhilo;
+	if(NOPhilo == 1)
+		idc = 1;
 	printf("\nPhilosopher %d puts down right chopstick", id);
 	chopstick[idc] = false;
 }
 
-void 
-putrightS(int id){
+void putrightS(int id){
 	printf("\nPhilosopher %d puts down right chopstick", id);
 	int idc = (id + 1)%NOPhilo;
 	chopstickS[idc]->V();
 }
 
-void 
-think(int id){
+void think(int id){
 	printf("\nPhilosopher %d begin thinking",id);
-	for(int i = 0; i < Random()%5+2; i ++){
+	for(int i = 0; i < Random()%4+2; i ++){
 		currentThread->Yield();
 	}	
 }
 
-void 
-Dining(int id)
+void Dining(int id)
 {
-	int currentMeal = 0;
 	printf("\n%s said: Sitting down.",
 		currentThread->getName());
 	currentThread->Yield();
-	while(currentMeal < NOMeal){
+	while(currentMeal <= NOMeal){
 		pickleft(id);
 		pickright(id);
+		if((currentMeal-1) == NOMeal){
+			putleft(id);
+			putright(id);
+			break;
+		}
 		eat(id, currentMeal);
 		putleft(id);
 		putright(id);
+		if((currentMeal-1) == NOMeal){
+			break;
+		}
 		think(id);
-		currentMeal++;
 	}
 	doneDining++;
-	// printf("\nThis is doneDining number: %d",doneDining);
-	if(doneDining == NOPhilo)
-		for(int i =0 ;i <NOPhilo; i++)
-			printf("\nPhilosopher %d is leaving the table",i);
+	while(doneDining<NOPhilo)
+		currentThread->Yield();
+	printf("\n%s is leaving the table",currentThread->getName());
+	currentThread->Finish();
 }
 
-void 
-DiningS(int id){
-	int currentMeal = 0;
+void DiningS(int id){
 	printf("\n%s said: Sitting down.",
 		 currentThread->getName());
 	currentThread->Yield();
-	while(currentMeal < NOMeal){
+	while(currentMeal <= NOMeal){
 		pickleftS(id);
 		pickrightS(id);
+		printf("\nCurrent meal %d",currentMeal);
+		if((currentMeal-1) == NOMeal){
+			putleftS(id);
+			putrightS(id);
+			break;
+		}
 		eat(id, currentMeal);
 		putleftS(id);
 		putrightS(id);
+		if((currentMeal-1) == NOMeal)
+			break;
 		think(id);
-		currentMeal++;
 	}
 	doneDining++;
-	if(doneDining == NOPhilo)
-		for (int i = 0; i < NOPhilo; ++i)
-		{
-			printf("\nPhilosopher %d is leaving the table",i);			
-		}
+	while(doneDining < NOPhilo)
+		currentThread->Yield();
+	printf("\n%s is leaving the table",currentThread->getName());
+	currentThread->Finish();		
 }
 
 bool 
@@ -263,6 +274,76 @@ checkInt(char * var){
 	return false;
 }
 
+bool hasMail(int id){
+	for(int i = 0; i < MSize; i++){
+		if(mailbox[id][i] != 9999)
+			return true;
+	}
+	return false;
+}
+
+void read(int id){
+	for (int i = 0; i <MSize; i++){
+		if(mailbox[id][i] != 9999){
+			printf("\n%s received an email with content: \"%s\"",
+				currentThread->getName(),mailContent[mailbox[id][i]]);
+			mailbox[id][i] = 9999;
+			break;
+		}
+	}
+}
+
+void wait(int id){
+	printf("\n%s begin waiting",currentThread->getName());
+	for(int i = 0; i < Random()%4+2; i ++){
+		currentThread->Yield();
+	}	
+}
+
+bool isFull(int id){
+	for(int i = 0; i < MSize; i++){
+		if(mailbox[id][i] == 9999)
+			return false;
+	}
+	return true;
+}
+
+void composeMail(int id){
+	if(totalSent >= NOMail)
+		return;
+	else{
+		int mailTo = Random()%NOPeople;
+		while(mailTo == id){
+			mailTo = Random()%NOPeople;
+		}
+		while(isFull(mailTo)){
+			currentThread->Yield();
+		}
+		for(int i = 0; i<MSize;i++){
+			if(mailbox[mailTo][i] == 9999){
+				mailbox[mailTo][i] = Random()%10;
+				printf("\n%s just sent a mail to Person #%d",
+					currentThread->getName(), mailTo);
+				break;
+			}
+		}
+	}
+}
+
+void PostOffice(int id){
+	while(totalSent < NOMail){
+		printf("\n%s enters the post office"
+				,currentThread->getName());
+		while(hasMail(id)){
+			read(id);
+			currentThread->Yield();
+		}
+		composeMail(id);
+		totalSent++;
+		printf("\n%s leaves the post office",currentThread->getName());
+		wait(id);
+	}
+}
 //----------------------------------------------------------------------
 // ThreadTest
 // 	Invoke a test routine.
@@ -325,20 +406,27 @@ ThreadTest()
 			printf("\nIncorrect Input\nPlease enter number of philosophers: ");
 			gets(num);
 		}
-		printf("\nPlease enter number of meals for each philosophers: ");
+		printf("\nPlease enter total number of meals for philosophers: ");
 		char * shout = new char[100];
 		gets(shout);
 		// char * shout1 = shout;
 		while(atoi(shout)==0 || checkInt(shout)){
-			printf("\nIncorrect Input\nPlease enter number of meals for each philosophers: ");
+			printf("\nIncorrect Input\nPlease enter total number of meals for philosophers: ");
 			gets(shout);
 		}
 		Thread *thread;// = new Thread("shouted thread");
 	
 		int nop = atoi(num); //nop: number of philosophers
 		NOPhilo = nop;
+		if(NOPhilo==1){
+			printf("\nSpecial case");
+			nop =2;
+		}
 		chopstick = new bool[nop];
 		chopstickS = new Semaphore * [nop];
+		currentMeal=1;
+		doneDining=0;
+
 		//Populate chopstick slot: all false - chopstick is not in use
 		for(int i=0; i < nop ;i++){
 			chopstick[i] = false;
@@ -355,11 +443,11 @@ ThreadTest()
 		NOMeal = nom;
 		int ii = 1;
 		char * which;
-		if(nop && nom){
-			for(int i = 0; i < nop; i++){
+		if(NOPhilo && NOMeal){
+			for(int i = 0; i < NOPhilo; i++){
 				// printf("Philosopher %d sits down\n",);
 				which = new char[100];
-				sprintf(which, "Philosophers %d",i);
+				sprintf(which, "Philosopher %d",i);
 				thread = new Thread(which);	
 				if(CMD == 3)
 					thread->Fork(Dining,i);
@@ -370,8 +458,65 @@ ThreadTest()
 		else{
 			printf("\nYou have entered invalid value for number of philosophers or/and number of meals for each philosophers");
 		}
+	}
+	else if(CMD == 5 || CMD == 6){
 
-		printf("\n");
+		mailContent[0] = "Hello there, Im about to graduate";
+		mailContent[1] = "Hey! It is OS time";
+		mailContent[2] = "Im hungry. Lets do Dining Philosopher";
+		mailContent[3] = "No, sorry. Can not dine right now";
+		mailContent[4] = "I have to go to the Post office";
+		mailContent[5] = "But for what ?";
+		mailContent[6] = "To wait in the busy line ?";
+		mailContent[7] = "Nah not really. I have Semaphore";
+		mailContent[8] = "Sounds fun. Good luck";
+		mailContent[9] = "Thanks! You know I will";
+
+		printf("\nPlease enter number of people go to the post office: ");
+		char * numpeople = new char[100];
+		gets(numpeople);
+		//char * num1 = num;
+		while(atoi(numpeople)==0  || checkInt(numpeople)){
+			printf("\nIncorrect Input\nPlease enter number of people go to the post office: ");
+			gets(numpeople);
+		}
+		printf("\nPlease enter the size of each mail box: ");
+		char * mailsize = new char[100];
+		gets(mailsize);
+		// char * shout1 = shout;
+		while(atoi(mailsize)==0 || checkInt(mailsize)){
+			printf("\nIncorrect Input\nPlease enter the size of each mail box: ");
+			gets(mailsize);
+		}
+		printf("\nPlease enter the total number of messages to be sent: ");
+		char * nummail = new char[100];
+		gets(nummail);
+		// char * shout1 = shout;
+		while(atoi(nummail)==0 || checkInt(nummail)){
+			printf("\nIncorrect Input\nPlease enter the size of each mail box: ");
+			gets(nummail);
+		}
+
+		NOPeople = atoi(numpeople);
+		MSize = atoi(mailsize);
+		NOMail = atoi(nummail);
+		totalSent = 0;
+
+		mailbox = new int*[NOPeople];
+
+		Thread * thread;
+
+		for(int i = 0; i < NOPeople; i++){
+			mailbox[i] = new int[MSize];
+			for(int j = 0; j < MSize; j++){
+				//Initialize mail box data
+				mailbox[i][j] = 9999;
+			}
+			char * peoplename = new char [100]	;
+			sprintf(peoplename, "Person #%d", i );
+			thread = new Thread(peoplename);
+			thread->Fork(PostOffice,i);
+		}
 	}
 }
 //End code changes by Hoang Pham
